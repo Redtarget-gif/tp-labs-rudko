@@ -52,7 +52,30 @@ internal class Program
             }
         }
 
-        static void Task2() { }
+        static void Task2()
+        {
+            Console.WriteLine("Введите значение n: ");
+            string input = Console.ReadLine();
+
+            if (!int.TryParse(input, out int n) || n < 1)
+            {
+                Console.WriteLine("Ошибка: Введите целое положительное число ");
+                return;
+            }
+
+            List<int> fib = new List<int>();
+            int a = 0;
+            int b = 1;
+
+            while (a <= n)
+            {
+                fib.Add(a);
+                int next = a + b;
+                a = b;
+                b = next;
+            }
+            Console.WriteLine(string.Join(", ", fib));
+        }
         static void Task3() { }
         static void Task4() { }
     }

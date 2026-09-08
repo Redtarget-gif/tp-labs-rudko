@@ -99,6 +99,32 @@ internal class Program
            double a = Math.Sin(5 / x) * Math.Cosh(Math.Sqrt(x - 1)) + Math.Exp(5 * x);
             Console.WriteLine($"Результат: {a}");
         }
-        static void Task4() { }
+        static void Task4()
+        {
+            Console.Write("Введите x: ");
+            if (!double.TryParse(Console.ReadLine(),out double x))
+            {
+                Console.WriteLine("Ошибка: введите число");
+                return;
+            }
+
+            double eps = 1e-6;
+            double sum = 0;
+            double term = x;
+            int k = 0;
+
+            while (Math.Abs(term) > eps)
+            {
+                sum += term;
+                k++;
+                term=-term*x*x/((2*k-1)*(2*k));
+            }
+            double exp = Math.Sin(x);
+
+            Console.WriteLine($"Сумма ряда Тейлора: {sum}");
+            Console.WriteLine($"Результат при использовании библиотеки Math: {exp}");
+            Console.WriteLine($"Количество просуммированных членов: {k+1}");
+            Console.WriteLine($"Разница: {Math.Abs(sum-exp)}");
+        }
     }
 }

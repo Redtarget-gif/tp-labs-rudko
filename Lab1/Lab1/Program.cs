@@ -76,7 +76,29 @@ internal class Program
             }
             Console.WriteLine(string.Join(", ", fib));
         }
-        static void Task3() { }
+        static void Task3()
+        {
+            Console.Write("Введите значение x: ");
+
+            if (!double.TryParse(Console.ReadLine(), out double x))
+            {
+                Console.WriteLine("Ошибка: Введите число ");
+                return;
+            }
+            if (x == 0)
+            {
+                Console.WriteLine("Ошибка: деление ноль");
+                return;
+            }
+            if (x < 1)
+            {
+                Console.WriteLine($"Ошибка: функция не определена при x={x}");
+                return;
+            }
+            
+           double a = Math.Sin(5 / x) * Math.Cosh(Math.Sqrt(x - 1)) + Math.Exp(5 * x);
+            Console.WriteLine($"Результат: {a}");
+        }
         static void Task4() { }
     }
 }

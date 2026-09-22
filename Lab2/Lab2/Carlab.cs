@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-internal class Program
+internal class Carlab
 {
     public class Car
     {
@@ -39,6 +39,19 @@ internal class Program
         car.Refuel(20);
         double d = car.Drive(500);
         Console.WriteLine($"{car.Model}: проехали {d:F0} км, пробег {car.Mileage:F0} км");
+
+        List<Shape> shapes = new List<Shape>
+            {
+                new Circle(2),
+                new Rectangle(3, 4),
+                new Square(5),
+            };
+
+        foreach (Shape s in shapes)
+            Console.WriteLine(s);
+
+        double totalArea = shapes.Sum(s => s.Area());
+        Console.WriteLine($"Суммарная площадь: {totalArea:F2}");
 
     }
 }

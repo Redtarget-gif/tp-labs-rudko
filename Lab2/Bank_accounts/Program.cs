@@ -96,7 +96,53 @@ public class CreditAccount: Account
 	}
 }
 
+public class DepositAccount : Account
+{
+	public decimal InterestRate { get; }
+	public int TermMonth { get; }
+	private int _monthPassed;
 
+	public DepositAccount(string owner, decimal initialBalance, decimal interestRate, int termMonths) : base(owner, initialBalance)
+    {
+		if (interestRate <= 0)
+			throw new ArgumentOutOfRangeException(nameof(interestRate));
+		if (termMonths <= 0) throw new ArgumentOutOfRangeException(nameof(termMonths));
+		InterestRate = interestRate;
+		TermMonth = termMonths;
+		_monthPassed = 0;
+    }
+
+    public override void Withdraw(decimal amount)
+    {
+        if (_monthPassed < TermMonth)
+		{
+			Console.WriteLine($"{GetType().Name} Снятие запрещено до окончания срока ({TermMonth - _monthPassed} мес. осталось)");
+			return;
+		}
+;
+		if (amount > Balance)
+		{
+			Console.WriteLine($"{GetType().Name} Недостаточно средств.");
+			return;
+		}
+		Balance -= amount;
+		Console.WriteLine($"{GetType().Name} Снятие {amount:C}. Баланс: {Balance:C}");
+    }
+    public override void AccrueInterest()
+    {
+        if (_monthPassed >= TermMonth)
+		{
+			Console.WriteLine($"{GetType().Name} Срок депозита истёк, проценты больше не начисляются.");
+			return;
+		}
+
+		decimal monthlyRate = InterestRate / 12;
+		decimal interest = Balance * monthlyRate;
+		Balance += interest;
+		_monthPassed++;
+		Console.WriteLine($"{GetType().Name} Начислены проценты за месяц: {interest:C}. Баланс: {Balance:C}");
+    }
+}
 
 internal class Program
 {

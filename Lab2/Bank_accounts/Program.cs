@@ -144,10 +144,43 @@ public class DepositAccount : Account
     }
 }
 
-internal class Program
+class Program
 {
-	private static void Main(string[] args)
+	 static void Main()
 	{
-		
-	}
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Console.WriteLine("Банковские счета");
+
+		var accounts = new List<Account>
+		{
+			new DebitAccount("Иванов",1000),
+			new CreditAccount("Петров",5000,1000),
+			new DepositAccount("Сидоров", 1000,0.10m,3)
+		};
+
+		foreach (var acc in accounts)
+            Console.WriteLine(acc);
+
+        Console.WriteLine("Операции");
+
+		accounts[0].Deposit(500);
+		accounts[0].Withdraw(200);
+		accounts[0].AccrueInterest();
+
+		Console.WriteLine();
+
+		accounts[1].Withdraw(3000);
+		accounts[1].AccrueInterest();
+
+		Console.WriteLine();
+
+		accounts[2].AccrueInterest();
+		accounts[2].AccrueInterest();
+		accounts[2].AccrueInterest();
+		accounts[2].Withdraw(1000);
+
+		Console.WriteLine("Итоги");
+		foreach (var acc in accounts)
+			Console.WriteLine(acc);
+    }
 }

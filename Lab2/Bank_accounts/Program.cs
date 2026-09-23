@@ -56,6 +56,48 @@ public class DebitAccount:Account
     }
 }
 
+public class CreditAccount: Account
+{
+	public decimal CreditLimit { get; }
+
+	public CreditAccount(string owner, decimal creditLimit, decimal initialBalance = 0):base(owner, initialBalance)
+	{
+		if (creditLimit <= 0)
+			throw new ArgumentOutOfRangeException(nameof(creditLimit));
+		CreditLimit = creditLimit;
+	}
+
+    public override void Withdraw(decimal amount)
+    {
+		if (amount <= 0)
+			throw new ArgumentOutOfRangeException(nameof(amount));
+		if (Balance - amount < -CreditLimit)
+		{
+			Console.WriteLine($"{GetType().Name} Превышен кредитный лимит. Доступно: {Balance+CreditLimit:C}");
+			return;
+		}
+
+		Balance -= amount;
+		Console.WriteLine($"{GetType().Name} Снятие {amount:C}. Баланс: {Balance:C}");
+    }
+
+	public override void AccrueInterest()
+	{
+		if (Balance < 0)
+		{
+			decimal interest = -Balance * 0.20m;
+			Balance-=interest;
+			Console.WriteLine($"{GetType().Name} Начислены проценты за долг: {interest:C}. Баланс: {Balance:C}");
+		}
+		else
+		{
+			Console.WriteLine($"{GetType().Name} Долга нет, проценты не начисляются.");
+		}
+	}
+}
+
+
+
 internal class Program
 {
 	private static void Main(string[] args)

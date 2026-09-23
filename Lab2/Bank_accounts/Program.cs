@@ -4,29 +4,43 @@ using System.Runtime.CompilerServices;
 
 public abstract class Account
 {
-	public string Owner { get; }
-	public decimal Balance { get; protected set; }
+	private decimal _balance;
+	private readonly string _owner;
 
+	public string Owner
+	{
+		get { return _owner; }
+	}
+
+	public decimal Balance
+	{
+		get { return _balance; }
+		protected set
+		{
+			if (value<-1_000_000_000m)
+				throw new ArgumentOutOfRangeException(nameof(value));
+			_balance = value;
+		}
+	}
 	protected Account(string owner, decimal initialBalance = 0)
 	{
-		Owner = owner;
-		Balance = initialBalance;
+		if (string.IsNullOrEmpty(owner))
+			throw new ArgumentOutOfRangeException(nameof(initialBalance));
+		_owner = owner;
+		_balance = initialBalance;
 	}
 	public virtual void Deposit(decimal amount)
 	{
 		if (amount <= 0)
 			throw new ArgumentOutOfRangeException(nameof(amount), "Сумма должна быть положительной");
 		Balance += amount;
-		Console.WriteLine($"{GetType().Name} пополнение на {amount:C}. Баланс: {Balance:C}");
 	}
 
 	public abstract void Withdraw(decimal amount);
 	public abstract void AccrueInterest();
 	public override string ToString()
 	{
-		string typeName = GetType().Name;
-		string formattedBalance = string.Format("{0:C}", Balance);
-		return typeName + " (" + Owner + "): " + formattedBalance;
+		return $"{GetType().Name} ({Owner}): {Balance:C}";
 	}
 }
 
@@ -39,31 +53,38 @@ public class DebitAccount:Account
 		if (amount <= 0)
 			throw new ArgumentOutOfRangeException(nameof(amount));
 		if (amount > Balance)
-		{
-			Console.WriteLine($"{GetType().Name} Недостаточно средств. Баланс: {Balance:C}");
-			return;
-		}
-
+			Console.WriteLine($"{GetType().Name} Недостаточно средств");
 		Balance -= amount;
-		Console.WriteLine($"{GetType().Name} Снятие {amount:C}. Баланс: {Balance:C}");
     }
 
     public override void AccrueInterest()
     {
-		decimal interest = Balance * 0.01m;
-		Balance += interest;
-		Console.WriteLine($"{GetType().Name} Начислены проценнты: {interest:C}. Баланс: {Balance:C}");
+		Balance += Balance*0.1m;
+    }
+
+    public override string ToString()
+    {
+		return $"{GetType().Name} ({Owner}): {Balance:C}";
     }
 }
 
 public class CreditAccount: Account
 {
-	public decimal CreditLimit { get; }
+	private decimal _creditLimit;
+	public decimal CreditLimit
+	{
+		get { return _creditLimit; }
+		private set
+		{
+			if (value <= 0)
+				throw new ArgumentOutOfRangeException(nameof(value));
+			_creditLimit = value;
+		}
+	}
+
 
 	public CreditAccount(string owner, decimal creditLimit, decimal initialBalance = 0):base(owner, initialBalance)
 	{
-		if (creditLimit <= 0)
-			throw new ArgumentOutOfRangeException(nameof(creditLimit));
 		CreditLimit = creditLimit;
 	}
 
@@ -72,41 +93,51 @@ public class CreditAccount: Account
 		if (amount <= 0)
 			throw new ArgumentOutOfRangeException(nameof(amount));
 		if (Balance - amount < -CreditLimit)
-		{
-			Console.WriteLine($"{GetType().Name} Превышен кредитный лимит. Доступно: {Balance+CreditLimit:C}");
-			return;
-		}
-
+			throw new InvalidOperationException("Превышен кредитный лимит");
 		Balance -= amount;
-		Console.WriteLine($"{GetType().Name} Снятие {amount:C}. Баланс: {Balance:C}");
     }
 
 	public override void AccrueInterest()
 	{
 		if (Balance < 0)
-		{
-			decimal interest = -Balance * 0.20m;
-			Balance-=interest;
-			Console.WriteLine($"{GetType().Name} Начислены проценты за долг: {interest:C}. Баланс: {Balance:C}");
-		}
-		else
-		{
-			Console.WriteLine($"{GetType().Name} Долга нет, проценты не начисляются.");
-		}
+			Balance-=Balance*0.20m;
 	}
+    public override string ToString()
+    {
+		return $"{GetType().Name} ({Owner}): {Balance:C}, кредитный лимит: {CreditLimit:C}";
+    }
 }
 
 public class DepositAccount : Account
 {
-	public decimal InterestRate { get; }
-	public int TermMonth { get; }
+	private decimal _interestRate;
+	private int _termMonth;
 	private int _monthPassed;
+
+	public decimal InterestRate
+	{
+		get { return _interestRate; }
+		private set
+		{
+			if (value <= 0)
+				throw new ArgumentOutOfRangeException(nameof(value));
+			_interestRate = value;
+		}
+	}
+
+	public int TermMonth
+	{
+		get { return _termMonth; }
+		private set
+		{
+			if (value <= 0)
+				throw new ArgumentOutOfRangeException(nameof(value));
+			_termMonth = value;
+		}
+	}
 
 	public DepositAccount(string owner, decimal initialBalance, decimal interestRate, int termMonths) : base(owner, initialBalance)
     {
-		if (interestRate <= 0)
-			throw new ArgumentOutOfRangeException(nameof(interestRate));
-		if (termMonths <= 0) throw new ArgumentOutOfRangeException(nameof(termMonths));
 		InterestRate = interestRate;
 		TermMonth = termMonths;
 		_monthPassed = 0;
@@ -114,47 +145,47 @@ public class DepositAccount : Account
 
     public override void Withdraw(decimal amount)
     {
+
+		if (amount <= 0)
+			throw new ArgumentOutOfRangeException(nameof(amount));
         if (_monthPassed < TermMonth)
-		{
 			Console.WriteLine($"{GetType().Name} Снятие запрещено до окончания срока ({TermMonth - _monthPassed} мес. осталось)");
-			return;
-		}
 ;
 		if (amount > Balance)
-		{
-			Console.WriteLine($"{GetType().Name} Недостаточно средств.");
-			return;
-		}
+			Console.WriteLine($"{GetType().Name} Недостаточно средств");
 		Balance -= amount;
-		Console.WriteLine($"{GetType().Name} Снятие {amount:C}. Баланс: {Balance:C}");
     }
     public override void AccrueInterest()
     {
         if (_monthPassed >= TermMonth)
-		{
-			Console.WriteLine($"{GetType().Name} Срок депозита истёк, проценты больше не начисляются.");
 			return;
-		}
-
 		decimal monthlyRate = InterestRate / 12;
-		decimal interest = Balance * monthlyRate;
-		Balance += interest;
+		Balance += Balance * monthlyRate;
 		_monthPassed++;
-		Console.WriteLine($"{GetType().Name} Начислены проценты за месяц: {interest:C}. Баланс: {Balance:C}");
+    }
+    public override string ToString()
+    {
+		return $"{GetType().Name}({Owner}): {Balance:C}, ставка: {InterestRate:P}, срок: {TermMonth} мес.";
     }
 }
 
 class Program
 {
 	 static void Main()
+
 	{
+        static void ShowOperation(Account acc, string operation)
+        {
+            Console.WriteLine($"{acc.GetType().Name} {acc.Owner}: {operation} => {acc.Balance:C}");
+        }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
-        Console.WriteLine("Банковские счета");
 
 		var accounts = new List<Account>
 		{
 			new DebitAccount("Иванов",1000),
+			new DebitAccount("Петрова",2000),
 			new CreditAccount("Петров",5000,1000),
+			new CreditAccount("Сидорова", 3000,500),
 			new DepositAccount("Сидоров", 1000,0.10m,3)
 		};
 
@@ -163,24 +194,34 @@ class Program
 
         Console.WriteLine("Операции");
 
-		accounts[0].Deposit(500);
-		accounts[0].Withdraw(200);
-		accounts[0].AccrueInterest();
+        accounts[0].Deposit(500);
+        ShowOperation(accounts[0], "пополнение 500,00 ₽");
+        accounts[0].Withdraw(200);
+        ShowOperation(accounts[0], "снятие 200,00 ₽");
+        accounts[0].AccrueInterest();
+        ShowOperation(accounts[0], "проценты");
 
-		Console.WriteLine();
+        accounts[1].Deposit(300);
+        ShowOperation(accounts[1], "пополнение 300,00 ₽");
 
-		accounts[1].Withdraw(3000);
-		accounts[1].AccrueInterest();
+        accounts[2].Withdraw(3000);
+        ShowOperation(accounts[2], "снятие 3000,00 ₽");
+        accounts[2].AccrueInterest();
+        ShowOperation(accounts[2], "проценты на долг");
 
-		Console.WriteLine();
+        accounts[3].Withdraw(1000);
+        ShowOperation(accounts[3], "снятие 1000,00 ₽");
 
-		accounts[2].AccrueInterest();
-		accounts[2].AccrueInterest();
-		accounts[2].AccrueInterest();
-		accounts[2].Withdraw(1000);
+        for (int i = 0; i < 3; i++)
+        {
+            accounts[4].AccrueInterest();
+            ShowOperation(accounts[4], "проценты за месяц");
+        }
+        accounts[4].Withdraw(1000);
+        ShowOperation(accounts[4], "снятие 1000,00 ₽");
 
-		Console.WriteLine("Итоги");
-		foreach (var acc in accounts)
-			Console.WriteLine(acc);
+        Console.WriteLine("\n=== Итоги ===");
+        foreach (var acc in accounts)
+            Console.WriteLine(acc);
     }
 }

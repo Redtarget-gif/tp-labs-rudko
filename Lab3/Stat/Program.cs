@@ -29,7 +29,7 @@ public static class TextStat
             Console.WriteLine($"Количество слов: {words.Length}");
             Console.WriteLine($"Количество символов с пробелами: {totalChars}");
             Console.WriteLine($"Количество символов без пробелов: {charsWithoutSpaces}");
-            Console.WriteLine($"Самое длинное слово: \"{longestWord}\" ({longestWord.Length} символов");
+            Console.WriteLine($"Самое длинное слово: \"{longestWord}\" ({longestWord.Length} символов)");
         }
         catch (IOException ex)
         {
@@ -45,8 +45,13 @@ public static class TextStat
 }
     class Program
     {
-        private static void Main(string[] args)
+        static void Main()
         {
-            Console.WriteLine("Hello, World!");
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+        Console.Write("Введите путь к текстовому файлу: ");
+        string path = Console.ReadLine()!;
+
+        TextStat.Run(path);
         }
     }

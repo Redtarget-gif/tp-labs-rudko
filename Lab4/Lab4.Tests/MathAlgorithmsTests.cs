@@ -10,7 +10,7 @@ namespace Lab4.Tests
         [Fact]
         public void Factorial_ofZero_ReturnsOne()
         {
-            long result = MathAlgorithms.Factorial(0);
+            long result = 0; //MathAlgorithms.Factorial(0);
             Assert.Equal(1, result);
         }
 

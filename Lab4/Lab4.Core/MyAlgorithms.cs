@@ -58,7 +58,7 @@ namespace Lab4.Core
             {
                 sum += term;
                 k++;
-                term = -term * x * x / ((2 * k - 1) * (2 * k));
+                term = -term * x * x / ((2 * k ) * (2 * k+1));
             }
             return sum;
         }

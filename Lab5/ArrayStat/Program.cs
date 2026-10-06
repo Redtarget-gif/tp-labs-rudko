@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Linq;
 internal class Program
 {
     private static void Main(string[] args)
@@ -9,9 +10,23 @@ internal class Program
         Console.WriteLine($"Генерация массива {N:N0} элементов");
         var random = new Random(42);
         var array = new int[N];
-        for (int i = 0;i<N; i++)
-            array[i] = random.Next(1,1_000_000);
+        for (int i = 0; i < N; i++)
+            array[i] = random.Next(1, 1_000_000);
         Console.WriteLine($"Массив сгенерирован. Ядер:{Environment.ProcessorCount}\n");
+
+        Console.Write("Введите кол-во потоков: ");
+        if (!int.TryParse(Console.ReadLine(), out int threadCount) || threadCount <= 0)
+        {
+            Console.WriteLine("Ошибка: введите положительное число.");
+            return;
+        }
+
+        Console.Write("Введите степень параллелизма для PLINQ: ");
+        if (!int.TryParse(Console.ReadLine(), out int degree) || degree <= 0)
+        {
+            Console.WriteLine("Ошибка: введите положительное число.");
+            return;
+        }
 
         //Последовательно
 
@@ -19,7 +34,7 @@ internal class Program
 
         long seqSum = 0;
         int seqMin = int.MaxValue;
-        int seqMax=int.MinValue;
+        int seqMax = int.MinValue;
 
         for (int i = 0; i < N; i++)
         {
@@ -44,7 +59,6 @@ internal class Program
 
         //Вручную по потокам
 
-       int threadCount=Environment.ProcessorCount;
         int chunkSize = N / threadCount;
 
         var threads = new Thread[threadCount];
@@ -102,5 +116,35 @@ internal class Program
 
         long parTime = sw.ElapsedMilliseconds;
 
+        //Через PLINQ
+
+        sw.Restart();
+
+        long plinqSum = array.AsParallel().WithDegreeOfParallelism(degree).Sum(x => (long)x);
+        int plinqMin = array.AsParallel().WithDegreeOfParallelism(degree).Min();
+        int plinqMax = array.AsParallel().WithDegreeOfParallelism(degree).Max();
+        double plinqAvg = array.AsParallel().WithDegreeOfParallelism(degree).Average();
+
+        sw.Stop();
+
+        Console.WriteLine($"PLINQ (степень: {degree})");
+        Console.WriteLine($"Сумма: {plinqSum:N0}");
+        Console.WriteLine($"Минимум: {plinqMin:N0}");
+        Console.WriteLine($"Максимум: {plinqMax:N0}");
+        Console.WriteLine($"Среднее: {plinqAvg:F2}");
+        Console.WriteLine($"Время: {sw.ElapsedMilliseconds} мс\n");
+
+        long plinqTime = sw.ElapsedMilliseconds;
+
+        Console.WriteLine("Таблица результатов");
+        Console.WriteLine($"{"Способ",-25} {"Время (мс)",-15} {"Ускорение",-10}");
+        Console.WriteLine($"{"Последовательно",-25} {seqTime,-15} {"1.00x",-10}");
+        Console.WriteLine($"{"По потокам",-25} {parTime,-15} {(double)seqTime / parTime:F2}x");
+        Console.WriteLine($"{"PLINQ",-25} {plinqTime,-15} {(double)seqTime / plinqTime:F2}x");
+
+        Console.WriteLine("Проверка совпадения результатов");
+        Console.WriteLine($"Смма: {(seqSum==parSum && seqSum==plinqSum? "ДА": "НЕТ")}");
+        Console.WriteLine($"Смма: {(seqMin == parMin && seqMin == plinqMin ? "ДА" : "НЕТ")}");
+        Console.WriteLine($"Смма: {(seqMax == parMax && seqMax == plinqMax ? "ДА" : "НЕТ")}");
     }
 }

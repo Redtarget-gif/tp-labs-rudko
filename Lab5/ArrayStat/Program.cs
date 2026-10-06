@@ -41,5 +41,66 @@ internal class Program
         Console.WriteLine($"Время: {sw.ElapsedMilliseconds} мс\n");
 
         long seqTime = sw.ElapsedMilliseconds;
+
+        //Вручную по потокам
+
+       int threadCount=Environment.ProcessorCount;
+        int chunkSize = N / threadCount;
+
+        var threads = new Thread[threadCount];
+        var sums = new long[threadCount];
+        var mins = new int[threadCount];
+        var maxs = new int[threadCount];
+
+        sw.Restart();
+
+        for (int t = 0; t < threadCount; t++)
+        {
+            int threadIndex = t;
+            int start = threadIndex * chunkSize;
+            int end = (threadIndex == threadCount - 1) ? N : start + chunkSize;
+
+            threads[t] = new Thread(() =>
+            {
+                long localSum = 0;
+                int localMin = int.MaxValue;
+                int localMax = int.MinValue;
+
+                for (int i = start; i < end; i++)
+                {
+                    int v = array[i];
+                    localSum += v;
+                    if (v < localMin) localMin = v;
+                    if (v > localMax) localMax = v;
+
+                }
+
+                sums[threadIndex] = localSum;
+                mins[threadIndex] = localMin;
+                maxs[threadIndex] = localMax;
+            });
+
+            threads[t].Start();
+        }
+
+        foreach (var thread in threads)
+            thread.Join();
+
+        long parSum = sums.Sum();
+        int parMin = mins.Min();
+        int parMax = maxs.Max();
+        double parAvg = (double)parSum / N;
+
+        sw.Stop();
+
+        Console.WriteLine($"Вручную по потокам ({threadCount} потока(-ов))");
+        Console.WriteLine($"Сумма: {parSum:N0}");
+        Console.WriteLine($"Минимум: {parMin:N0}");
+        Console.WriteLine($"Максимум: {parMax:N0}");
+        Console.WriteLine($"Среднее: {parAvg:F2}");
+        Console.WriteLine($"Время: {sw.ElapsedMilliseconds} мс\n");
+
+        long parTime = sw.ElapsedMilliseconds;
+
     }
 }

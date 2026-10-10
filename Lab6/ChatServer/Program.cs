@@ -8,7 +8,9 @@ internal class Program
     {
         Console.InputEncoding = System.Text.Encoding.UTF8;
         Console.OutputEncoding = System.Text.Encoding.UTF8;
-        const int Port = 5555;
+        int port = 5555;
+        if (args.Length > 0 && int.TryParse(args[0], out int p))
+            port = p;
 
         var clients = new List<StreamWriter>();
         var nicks = new List<string>();
@@ -24,9 +26,9 @@ internal class Program
             }
         }
 
-        var listener = new TcpListener(IPAddress.Any, Port);
+        var listener = new TcpListener(IPAddress.Any, port);
         listener.Start();
-        Log($"Сервер запущен на порту {Port}. Ctrl+C - остановка.");
+        Log($"Сервер запущен на порту {port}. Ctrl+C - остановка.");
 
         while (true)
         {

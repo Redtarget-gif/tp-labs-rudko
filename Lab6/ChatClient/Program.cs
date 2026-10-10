@@ -9,7 +9,6 @@ internal class Program
         Console.Write("Адрес сервера (Enter = localhost): ");
         string host = Console.ReadLine() is { Length: > 0 } h ? h : "localhost";
         Console.Write("Ваш ник: ");
-        string nick = Console.ReadLine() ?? "anon";
 
         using var client = new TcpClient();
         await client.ConnectAsync(host, 5555);
@@ -17,7 +16,23 @@ internal class Program
         var reader = new StreamReader(stream);
         var writer = new StreamWriter(stream) { AutoFlush = true };
 
-        await writer.WriteLineAsync(nick);
+        string? nick = null;
+        while (nick == null)
+        {
+            Console.Write("Ваш ник: ");
+            string? input = Console.ReadLine();
+            if (input == null) return;
+
+            await writer.WriteLineAsync(input);
+
+            string? responce = await reader.ReadLineAsync();
+            if (responce == null) return;
+
+            Console.WriteLine(responce);
+
+            if (responce.StartsWith("Добро пожаловать"))
+                nick = input;
+        }
 
         _ = Task.Run(async () =>
         {

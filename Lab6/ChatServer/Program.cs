@@ -9,6 +9,7 @@ internal class Program
         const int Port = 5555;
 
         var clients = new List<StreamWriter>();
+        var nicks = new List<string>();
         var lockobj = new object();
 
         var listener = new TcpListener(IPAddress.Any, Port);
@@ -28,10 +29,42 @@ internal class Program
             var reader = new StreamReader(stream);
             var writer = new StreamWriter(stream) { AutoFlush = true };
 
-            string? nick = await reader.ReadLineAsync();
-            if (string.IsNullOrWhiteSpace(nick)) { client.Close(); return; }
+            string? nick = null;
 
-            lock (lockobj) clients.Add(writer);
+            while (true)
+            {
+                string? input = await reader.ReadLineAsync();
+                if (input == null) { client.Close();return; }
+
+                input = input.Trim();
+
+                if (string.IsNullOrWhiteSpace(input))
+                {
+                    await writer.WriteLineAsync("Ник не может быть пустым");
+                    continue;
+                }
+                bool isTaken;
+                lock (lockobj)
+                {
+                    isTaken = nicks.Contains(input);
+                    if (!isTaken)
+                    {
+                        nicks.Add(input);
+                        clients.Add(writer);
+                    }
+                }
+
+                if (isTaken)
+                {
+                    await writer.WriteLineAsync($"Ник '{input}' уже занят.");
+                    continue;
+                }
+
+                nick = input;
+                await writer.WriteLineAsync($"Добро пожаловать, {nick}!");
+                break;
+            }
+
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {nick} подключился ({endpoint})");
             await BroadcastAsync($"*** {nick} вошёл в чат ***");
 
@@ -50,7 +83,7 @@ internal class Program
                 lock (lockobj) clients.Remove(writer);
                 client.Close();
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {nick} отключился");
-                await BroadcastAsync($"***{nick} покаинул чат ***");
+                await BroadcastAsync($"***{nick} покинул чат ***");
             }
         }
 

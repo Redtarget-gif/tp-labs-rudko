@@ -82,6 +82,38 @@ internal class Program
                         await writer.WriteLineAsync($"Пользователи онлайн: {users}");
                         continue;
                     }
+
+                    if (line.StartsWith("/w "))
+                    {
+                        var parts = line.Split(' ', 3);
+                            if (parts.Length < 3)
+                        {
+                            await writer.WriteLineAsync("Формат: /W ник текст");
+                            continue;
+                        }
+
+                        string target = parts[1];
+                        string text = parts[2];
+
+                        StreamWriter? targetWriter = null;
+                        lock (lockobj)
+                        {
+                            int index = nicks.IndexOf(target);
+                            if (index >= 0)
+                                targetWriter = clients[index];
+                        }
+                        if (targetWriter == null)
+                        {
+                            await writer.WriteLineAsync($"Пользователь '{target}' не найден.");
+                            continue;
+                        }
+                        try
+                        {
+                            await targetWriter.WriteLineAsync($"[ЛС от {nick}] {text}");
+                        }
+                        catch (IOException) { }
+                        continue;
+                    }
                     await BroadcastAsync($"[{DateTime.Now:HH:mm:ss}] {nick}: {line}");
                 }
             }

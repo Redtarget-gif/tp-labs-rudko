@@ -6,15 +6,27 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
+        Console.InputEncoding = System.Text.Encoding.UTF8;
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
         const int Port = 5555;
 
         var clients = new List<StreamWriter>();
         var nicks = new List<string>();
         var lockobj = new object();
 
+        void Log (string message)
+        {
+            string line = $"[{DateTime.Now:yyy-MM-dd HH:mm:ss}] {message}";
+            Console.WriteLine(line);
+            lock (lockobj)
+            {
+                File.AppendAllText("chat.log", line + Environment.NewLine);
+            }
+        }
+
         var listener = new TcpListener(IPAddress.Any, Port);
         listener.Start();
-        Console.WriteLine($"Сервер запущен на порту {Port}. Ctrl+C - остановка.");
+        Log($"Сервер запущен на порту {Port}. Ctrl+C - остановка.");
 
         while (true)
         {
@@ -26,8 +38,8 @@ internal class Program
         {
             var endpoint = client.Client.RemoteEndPoint;
             var stream = client.GetStream();
-            var reader = new StreamReader(stream);
-            var writer = new StreamWriter(stream) { AutoFlush = true };
+            var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+            var writer = new StreamWriter(stream,System.Text.Encoding.UTF8) { AutoFlush = true };
 
             string? nick = null;
 
@@ -65,7 +77,7 @@ internal class Program
                 break;
             }
 
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {nick} подключился ({endpoint})");
+            Log($"{nick} подключился ({endpoint})");
             await BroadcastAsync($"*** {nick} вошёл в чат ***");
 
             try
@@ -110,19 +122,28 @@ internal class Program
                         try
                         {
                             await targetWriter.WriteLineAsync($"[ЛС от {nick}] {text}");
+                            Log($"[ЛС] {nick} -> {target}: {text}");
                         }
                         catch (IOException) { }
                         continue;
                     }
-                    await BroadcastAsync($"[{DateTime.Now:HH:mm:ss}] {nick}: {line}");
+                    Log($"{nick}: {line}");
                 }
             }
             catch (IOException) { }
             finally
             {
-                lock (lockobj) clients.Remove(writer);
+                lock (lockobj)
+                {
+                    int index = nicks.IndexOf(nick!);
+                    if (index >= 0)
+                    {
+                        nicks.RemoveAt(index);
+                        clients.RemoveAt(index);
+                    }
+                }
                 client.Close();
-                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {nick} отключился");
+                Log($"{nick} отключился");
                 await BroadcastAsync($"***{nick} покинул чат ***");
             }
         }

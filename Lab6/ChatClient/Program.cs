@@ -6,14 +6,16 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Console.InputEncoding = System.Text.Encoding.UTF8;
         Console.Write("Адрес сервера (Enter = localhost): ");
         string host = Console.ReadLine() is { Length: > 0 } h ? h : "localhost";
 
         using var client = new TcpClient();
         await client.ConnectAsync(host, 5555);
         var stream=client.GetStream();
-        var reader = new StreamReader(stream);
-        var writer = new StreamWriter(stream) { AutoFlush = true };
+        var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+        var writer = new StreamWriter(stream, System.Text.Encoding.UTF8) { AutoFlush = true };
 
         string? nick = null;
         while (nick == null)

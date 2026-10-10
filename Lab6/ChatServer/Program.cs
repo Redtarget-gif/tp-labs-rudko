@@ -74,6 +74,14 @@ internal class Program
                 while ((line = await reader.ReadLineAsync()) != null)
                 {
                     if (line == "/exit") break;
+
+                    if (line == "/list")
+                    {
+                        string users;
+                        lock (lockobj) users = string.Join(", ", nicks);
+                        await writer.WriteLineAsync($"Пользователи онлайн: {users}");
+                        continue;
+                    }
                     await BroadcastAsync($"[{DateTime.Now:HH:mm:ss}] {nick}: {line}");
                 }
             }

@@ -8,7 +8,6 @@ internal class Program
     {
         Console.Write("Адрес сервера (Enter = localhost): ");
         string host = Console.ReadLine() is { Length: > 0 } h ? h : "localhost";
-        Console.Write("Ваш ник: ");
 
         using var client = new TcpClient();
         await client.ConnectAsync(host, 5555);

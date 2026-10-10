@@ -1,0 +1,165 @@
+﻿using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
+internal class Program
+{
+    private static async Task Main(string[] args)
+    {
+        Console.InputEncoding = System.Text.Encoding.UTF8;
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        int port = 5555;
+        if (args.Length > 0 && int.TryParse(args[0], out int p))
+            port = p;
+
+        var clients = new List<StreamWriter>();
+        var nicks = new List<string>();
+        var lockobj = new object();
+
+        void Log (string message)
+        {
+            string line = $"[{DateTime.Now:yyy-MM-dd HH:mm:ss}] {message}";
+            Console.WriteLine(line);
+            lock (lockobj)
+            {
+                File.AppendAllText("chat.log", line + Environment.NewLine);
+            }
+        }
+
+        var listener = new TcpListener(IPAddress.Any, port);
+        listener.Start();
+        Log($"Сервер запущен на порту {port}. Ctrl+C - остановка.");
+
+        while (true)
+        {
+            TcpClient client = await listener.AcceptTcpClientAsync();
+            _ = HandleClientAsync(client);
+        }
+
+        async Task HandleClientAsync(TcpClient client)
+        {
+            var endpoint = client.Client.RemoteEndPoint;
+            var stream = client.GetStream();
+            var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+            var writer = new StreamWriter(stream,System.Text.Encoding.UTF8) { AutoFlush = true };
+
+            string? nick = null;
+
+            while (true)
+            {
+                string? input = await reader.ReadLineAsync();
+                if (input == null) { client.Close();return; }
+
+                input = input.Trim();
+
+                if (string.IsNullOrWhiteSpace(input))
+                {
+                    await writer.WriteLineAsync("Ник не может быть пустым");
+                    continue;
+                }
+                bool isTaken;
+                lock (lockobj)
+                {
+                    isTaken = nicks.Contains(input);
+                    if (!isTaken)
+                    {
+                        nicks.Add(input);
+                        clients.Add(writer);
+                    }
+                }
+
+                if (isTaken)
+                {
+                    await writer.WriteLineAsync($"Ник '{input}' уже занят.");
+                    continue;
+                }
+
+                nick = input;
+                await writer.WriteLineAsync($"Добро пожаловать, {nick}!");
+                break;
+            }
+
+            Log($"{nick} подключился ({endpoint})");
+            await BroadcastAsync($"*** {nick} вошёл в чат ***");
+
+            try
+            {
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    if (line == "/exit") break;
+
+                    if (line == "/list")
+                    {
+                        string users;
+                        lock (lockobj) users = string.Join(", ", nicks);
+                        await writer.WriteLineAsync($"Пользователи онлайн: {users}");
+                        continue;
+                    }
+
+                    if (line.StartsWith("/w "))
+                    {
+                        var parts = line.Split(' ', 3);
+                            if (parts.Length < 3)
+                        {
+                            await writer.WriteLineAsync("Формат: /W ник текст");
+                            continue;
+                        }
+
+                        string target = parts[1];
+                        string text = parts[2];
+
+                        StreamWriter? targetWriter = null;
+                        lock (lockobj)
+                        {
+                            int index = nicks.IndexOf(target);
+                            if (index >= 0)
+                                targetWriter = clients[index];
+                        }
+                        if (targetWriter == null)
+                        {
+                            await writer.WriteLineAsync($"Пользователь '{target}' не найден.");
+                            continue;
+                        }
+                        try
+                        {
+                            await targetWriter.WriteLineAsync($"[ЛС от {nick}] {text}");
+                            Log($"[ЛС] {nick} -> {target}: {text}");
+                        }
+                        catch (IOException) { }
+                        continue;
+                    }
+                    Log($"{nick}: {line}");
+                }
+            }
+            catch (IOException) { }
+            finally
+            {
+                lock (lockobj)
+                {
+                    int index = nicks.IndexOf(nick!);
+                    if (index >= 0)
+                    {
+                        nicks.RemoveAt(index);
+                        clients.RemoveAt(index);
+                    }
+                }
+                client.Close();
+                Log($"{nick} отключился");
+                await BroadcastAsync($"***{nick} покинул чат ***");
+            }
+        }
+
+        async Task BroadcastAsync(string message)
+        {
+            List<StreamWriter> snapshot;
+            lock (lockobj) snapshot = clients.ToList();
+
+            foreach (var w in snapshot)
+            {
+                try { await w.WriteLineAsync(message); }
+                catch (IOException) { }
+            }
+        }
+    }
+}

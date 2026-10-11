@@ -24,6 +24,7 @@ internal class Program
             string? input = Console.ReadLine();
             if (input == null) return;
 
+            input = input.Trim().Replace(" ", "_");
             await writer.WriteLineAsync(input);
 
             string? responce = await reader.ReadLineAsync();

@@ -50,7 +50,7 @@ internal class Program
                 string? input = await reader.ReadLineAsync();
                 if (input == null) { client.Close();return; }
 
-                input = input.Trim();
+                input = input.Trim().Replace(" ", "_"); ;
 
                 if (string.IsNullOrWhiteSpace(input))
                 {

@@ -18,7 +18,7 @@ namespace PhoneBook.Core
 
         public void Save(IEnumerable<Contact> contacts)
         {
-            using var writer = new StreamWriter(_path);
+            using var writer = new StreamWriter(_path, false,new System.Text.UTF8Encoding(true));
             using var csv = new CsvHelper.CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture);
             csv.WriteRecords(contacts);
         }
@@ -26,7 +26,7 @@ namespace PhoneBook.Core
         public List<Contact> Load()
         {
             if (!File.Exists(_path)) return new List<Contact>();
-            using var reader = new StreamReader(_path);
+            using var reader = new StreamReader(_path,System.Text.Encoding.UTF8);
             using var csv = new CsvHelper.CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture);
             return csv.GetRecords<Contact>().ToList();
         }
